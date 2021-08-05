@@ -3351,11 +3351,11 @@ ModelInferHandler::InferResponseComplete(
         state->tritonserver_, iresponse, *response, state->alloc_payload_);
   }
 
-  LOG_ERROR << "ModelInferHandler::InferResponseComplete, "
-                 << state->unique_id_ << " step " << state->step_;
+  // LOG_ERROR << "ModelInferHandler::InferResponseComplete, "
+  //                << state->unique_id_ << " step " << state->step_;
 
   for (const auto& raw_output : response->raw_output_contents()) {
-    size_t len = raw_output.size();
+    size_t len = raw_output.size() / 4;
     const float* buffer = reinterpret_cast<const float*>(&raw_output[0]);
     for (size_t i = 0; i < len; ++i) {
       // LOG_ERROR << buffer[i] << " ";
