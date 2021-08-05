@@ -3292,6 +3292,17 @@ ModelInferHandler::Process(InferHandler::State* state, bool rpc_ok)
 }
 
 void
+WriteFile(const std::string& filename, const std::string data)
+{
+  if (!filename.empty()) {
+    std::ofstream file;
+    file.open(filename.c_str(), std::ios_base::app);
+    file << data;
+    file.close();
+  }
+}
+
+void
 ModelInferHandler::InferResponseComplete(
     TRITONSERVER_InferenceResponse* iresponse, const uint32_t flags,
     void* userp)
@@ -3338,6 +3349,19 @@ ModelInferHandler::InferResponseComplete(
   } else {
     err = InferResponseCompleteCommon<inference::ModelInferResponse>(
         state->tritonserver_, iresponse, *response, state->alloc_payload_);
+  }
+
+  LOG_ERROR << "ModelInferHandler::InferResponseComplete, "
+                 << state->unique_id_ << " step " << state->step_;
+
+  for (const auto& raw_output : response->raw_output_contents()) {
+    size_t len = raw_output.size();
+    const float* buffer = reinterpret_cast<const float*>(&raw_output[0]);
+    for (size_t i = 0; i < len; ++i) {
+      // LOG_ERROR << buffer[i] << " ";
+      WriteFile("output.txt", std::to_string(buffer[i]) + " ");
+    }
+    WriteFile("output.txt", "\n");
   }
 
   if (err != nullptr) {
