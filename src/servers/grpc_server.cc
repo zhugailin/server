@@ -3291,9 +3291,12 @@ ModelInferHandler::Process(InferHandler::State* state, bool rpc_ok)
   return !finished;
 }
 
+std::mutex write_mtx;
+
 void
 WriteFile(const std::string& filename, const std::string data)
 {
+  std::lock_guard<std::mutex> lock(write_mtx);
   if (!filename.empty()) {
     std::ofstream file;
     file.open(filename.c_str(), std::ios_base::app);
@@ -3350,9 +3353,6 @@ ModelInferHandler::InferResponseComplete(
     err = InferResponseCompleteCommon<inference::ModelInferResponse>(
         state->tritonserver_, iresponse, *response, state->alloc_payload_);
   }
-
-  // LOG_ERROR << "ModelInferHandler::InferResponseComplete, "
-  //                << state->unique_id_ << " step " << state->step_;
 
   for (const auto& raw_output : response->raw_output_contents()) {
     size_t len = raw_output.size() / 4;
