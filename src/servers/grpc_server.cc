@@ -3292,17 +3292,18 @@ ModelInferHandler::Process(InferHandler::State* state, bool rpc_ok)
 }
 
 std::mutex write_mtx;
+std::ofstream file("output.txt", std::ios_base::app);
+// file.open("output.txt", std::ios_base::app);
 
 void
 WriteFile(const std::string& filename, const std::string data)
 {
   std::lock_guard<std::mutex> lock(write_mtx);
-  if (!filename.empty()) {
-    std::ofstream file;
-    file.open(filename.c_str(), std::ios_base::app);
+  // if (!filename.empty()) {
+    // std::ofstream file;
+    // file.open(filename.c_str(), std::ios_base::app);
     file << data;
-    file.close();
-  }
+  // }
 }
 
 void
