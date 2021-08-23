@@ -3291,20 +3291,20 @@ ModelInferHandler::Process(InferHandler::State* state, bool rpc_ok)
   return !finished;
 }
 
-std::mutex write_mtx;
-std::ofstream file("output.txt", std::ios_base::app);
-// file.open("output.txt", std::ios_base::app);
+// std::mutex write_mtx;
+// std::ofstream file("output.txt", std::ios_base::app);
+// // file.open("output.txt", std::ios_base::app);
 
-void
-WriteFile(const std::string& filename, const std::string data)
-{
-  std::lock_guard<std::mutex> lock(write_mtx);
-  // if (!filename.empty()) {
-    // std::ofstream file;
-    // file.open(filename.c_str(), std::ios_base::app);
-    file << data;
-  // }
-}
+// void
+// WriteFile(const std::string& filename, const std::string data)
+// {
+//   std::lock_guard<std::mutex> lock(write_mtx);
+//   // if (!filename.empty()) {
+//     // std::ofstream file;
+//     // file.open(filename.c_str(), std::ios_base::app);
+//     file << data;
+//   // }
+// }
 
 void
 ModelInferHandler::InferResponseComplete(
@@ -3355,17 +3355,18 @@ ModelInferHandler::InferResponseComplete(
         state->tritonserver_, iresponse, *response, state->alloc_payload_);
   }
 
-  std::string output_floats = "";
+  // std::string output_floats = "";
   for (const auto& raw_output : response->raw_output_contents()) {
-    size_t len = raw_output.size() / 4;
+    // size_t len = raw_output.size() / 4;
     const float* buffer = reinterpret_cast<const float*>(&raw_output[0]);
-    for (size_t i = 0; i < len; ++i) {
+    LOG_ERROR << buffer[0];
+    // for (size_t i = 0; i < len; ++i) {
       // LOG_ERROR << buffer[i] << " ";
-      output_floats += std::to_string(buffer[i]) + " ";
-    }
-    output_floats += "\n";
+    //   output_floats += std::to_string(buffer[i]) + " ";
+    // }
+  //   output_floats += "\n";
   }
-  WriteFile("output.txt", output_floats);
+  // WriteFile("output.txt", output_floats);
 
   if (err != nullptr) {
     response->Clear();
