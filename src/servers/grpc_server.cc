@@ -3297,6 +3297,23 @@ ModelInferHandler::Process(InferHandler::State* state, bool rpc_ok)
 // std::ofstream file("output.txt", std::ios_base::app);
 // // file.open("output.txt", std::ios_base::app);
 
+float output00 [100] = {-6.3242188, -6.3398438, -6.1992188, -6.3515625, -6.2617188, -5.1210938,
+ -6.0039062, -6.4726562, -6.4453125, -6.4453125, -6.2226562, -6.2109375,
+ -6.2460938, -6.234375, -6.2578125, -5.890625, -6.1835938, -6.0859375, -6.3125,
+ -6.2773438, -6.3515625, -6.3476562, -6.3125, -6.1210938, -6.4257812,
+ -6.2304688, -6.2148438, -5.4023438, -6.3710938, -1.5986328, -5.328125,
+ -5.1445312, -0.31225586, -0.046661377, -3.6035156, -4.21875, -4.4726562,
+ -6.21875, -6.2304688, -6.2929688, -6.078125, -6.1601562, -6.2226562,
+ -5.4570312, -5.71875, -6.3867188, -6.3164062, -6.3203125, -6.3125, -6.1835938,
+ -6.3007812, -6.2304688, -6.265625, -6.0664062, -5.9882812, -6.1054688,
+ -6.2421875, -6.2851562, -6.3320312, -6.1914062, -6.15625, -6.2148438,
+ -6.3085938, -6.1015625, -6.2421875, -6.2734375, -6.015625, -6.1171875,
+ -6.1367188, -6.0703125, -6.359375, -6.140625, -6.3046875, -6.2148438,
+ -6.1992188, -6.265625, -5.9765625, -6.1953125, -6.2539062, -6.1914062,
+ -6.3203125, -6.265625, -5.9492188, -5.8710938, -6.2226562, -6.2890625, -6.25,
+ -6.2695312, -6.0585938, -6.0703125, -5.8515625, -6.109375, -5.6210938, -6.25,
+ -6.1992188, -6.0273438, -6.0234375, -6.1015625, -6.3476562, -6.0664062};
+
 // void
 // WriteFile(const std::string& filename, const std::string data)
 // {
@@ -3311,19 +3328,19 @@ ModelInferHandler::Process(InferHandler::State* state, bool rpc_ok)
 void
 ModelInferHandler::InferResponseComplete(
     TRITONSERVER_InferenceResponse* iresponse, const uint32_t flags,
-    void* userp)
-{
+    void* userp) {
   State* state = reinterpret_cast<State*>(userp);
 
   // Increment the callback index
   state->cb_count_++;
 
   LOG_VERBOSE(1) << "ModelInferHandler::InferResponseComplete, "
-                 << state->unique_id_ << " step " << state->step_;
+                  << state->unique_id_ << " step " << state->step_;
 
   // Defer to the callback with the final response
   if ((flags & TRITONSERVER_RESPONSE_COMPLETE_FINAL) == 0) {
-    LOG_ERROR << "[INTERNAL] ModelInfer received a response without FINAL flag";
+    LOG_ERROR
+        << "[INTERNAL] ModelInfer received a response without FINAL flag";
     return;
   }
 
@@ -3345,32 +3362,38 @@ ModelInferHandler::InferResponseComplete(
 
   if (state->cb_count_ != 1) {
     err = TRITONSERVER_ErrorNew(
-        TRITONSERVER_ERROR_INTERNAL, std::string(
-                                         "expected a single response, got " +
-                                         std::to_string(state->cb_count_))
-                                         .c_str());
+        TRITONSERVER_ERROR_INTERNAL,
+        std::string(
+            "expected a single response, got " +
+            std::to_string(state->cb_count_))
+            .c_str());
   } else if (iresponse == nullptr) {
     err = TRITONSERVER_ErrorNew(
-        TRITONSERVER_ERROR_INTERNAL, "received an unexpected null response");
+        TRITONSERVER_ERROR_INTERNAL,
+        "received an unexpected null response");
   } else {
     err = InferResponseCompleteCommon<inference::ModelInferResponse>(
         state->tritonserver_, iresponse, *response, state->alloc_payload_);
   }
 
+  std::string req_id = response->id();
+  int request_id = std::stoi(req_id);
   // std::string output_floats = "";
   for (const auto& raw_output : response->raw_output_contents()) {
     // size_t len = raw_output.size() / 4;
     const float* buffer = reinterpret_cast<const float*>(&raw_output[0]);
-    if (fabs(buffer[0] - (-6.32422)) > 0.00002f) {
-      LOG_ERROR << "Incorrect output: "<< buffer[0];
+    if ((request_id < 100) && (fabs(buffer[0] - output00[request_id]) > 0.00002f)) {
+      // if (fabs(buffer[0] - (-6.32422)) > 0.00002f) {
+      LOG_ERROR << "Incorrect output at " << request_id << ": " << buffer[0]
+                << ", expected " << output00[request_id];
     }
-    break;
-    // for (size_t i = 0; i < len; ++i) {
+      break;
+      // for (size_t i = 0; i < len; ++i) {
       // LOG_ERROR << buffer[i] << " ";
-    //   output_floats += std::to_string(buffer[i]) + " ";
-    // }
-  //   output_floats += "\n";
-  }
+      //   output_floats += std::to_string(buffer[i]) + " ";
+      // }
+      //   output_floats += "\n";
+    }
   // WriteFile("output.txt", output_floats);
 
   if (err != nullptr) {
@@ -3402,8 +3425,8 @@ ModelInferHandler::InferResponseComplete(
 //
 // Additional Stream Infer utilities
 //
-TRITONSERVER_Error*
-StreamInferResponseStart(TRITONSERVER_ResponseAllocator* allocator, void* userp)
+TRITONSERVER_Error* StreamInferResponseStart(
+    TRITONSERVER_ResponseAllocator* allocator, void* userp)
 {
   AllocPayload<inference::ModelStreamInferResponse>* payload =
       reinterpret_cast<AllocPayload<inference::ModelStreamInferResponse>*>(
