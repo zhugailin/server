@@ -61,6 +61,8 @@
 #include "src/servers/tracer.h"
 #endif  // TRITON_ENABLE_TRACING
 
+#include <cmath>
+
 namespace nvidia { namespace inferenceserver {
 namespace {
 
@@ -3359,7 +3361,10 @@ ModelInferHandler::InferResponseComplete(
   for (const auto& raw_output : response->raw_output_contents()) {
     // size_t len = raw_output.size() / 4;
     const float* buffer = reinterpret_cast<const float*>(&raw_output[0]);
-    LOG_ERROR << buffer[0];
+    if (fabs(buffer[0] - (-6.32422)) > 0.00002f) {
+      LOG_ERROR << "Incorrect output: "<< buffer[0];
+    }
+    break;
     // for (size_t i = 0; i < len; ++i) {
       // LOG_ERROR << buffer[i] << " ";
     //   output_floats += std::to_string(buffer[i]) + " ";
