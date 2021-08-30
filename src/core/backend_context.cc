@@ -353,6 +353,12 @@ BackendResponder::Finalize()
       std::unique_ptr<InferenceResponse>* response = pr.first;
       InferenceResponse::Output* response_output = pr.second;
 
+      // After GPU->pinned but before pinned->CPU
+      if (response_output->Name() == "output__0") {
+        float* output0_data = reinterpret_cast<float*>(pinned_buffer);
+        LOG_ERROR << "output : " << output0_data[0];
+      }
+
       const void* response_buffer;
       size_t response_byte_size;
       TRITONSERVER_MemoryType response_memory_type;
@@ -458,6 +464,14 @@ BackendResponder::SetFixedSizeOutputBuffer(
     }
   }
 
+  // if (response_output->Name() == "output__0") {
+  //   float output0_data[2];
+  //   // cudaMemcpy(output0_data, buffer, 8, cudaMemcpyDeviceToHost);
+  //   cudaMemcpyAsync(output0_data, buffer, 8, cudaMemcpyDeviceToHost, stream_);
+  //   // float* output0_data =
+  //   //     reinterpret_cast<float*>(io_binding_info.device_buffer_);
+  //   LOG_ERROR << "output : " << output0_data[0];
+  // }
   return cuda_copy;
 }
 

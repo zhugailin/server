@@ -42,3 +42,36 @@ print(sorted(l2) == sorted(l1))
 # >>> print(sorted(l1)[:10])
 # [-6.47656, -6.47266, -6.46484, -6.46484, -6.44531, -6.44531, -6.44531, -6.4375, -6.43359, -6.43359]
 # >>> 
+
+l2 = []
+f = open("server_ip_2inst_trt_pinned.log", "r")
+for line in f.readlines():
+    line_s = line.split("put : ")[1]
+    try:
+        l2.append(float(line_s))
+    except Exception as e:
+        # l2.append(float(line_s.split("E0828")[0]))
+        l2.append(float(line_s.split("E0830")[0]))
+        print(e)
+
+l1 = []
+f = open("server_ip_1inst_trt.log", "r")
+for line in f.readlines():
+    line_s = line.split("put : ")[1]
+    try:
+        l1.append(float(line_s))
+    except Exception as e:
+        l1.append(float(line_s.split("E0828")[0]))
+        print(e)
+
+l2 = sorted(l2)
+l1 = sorted(l1)
+count = 0
+for i in range(len(l2)):
+    if l1[i] != l2[i]:
+        print(l1[i], l2[i])
+        count += 1
+    if count > 5:
+        break
+
+print(count)
