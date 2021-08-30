@@ -3082,6 +3082,17 @@ PlanBackend::Context::Run(
             "failed to run TRT response");
       }
 
+      if (name == "output__0") {
+        float output0_data[2];
+        cudaMemcpy(
+            output0_data, io_binding_info.device_buffer_, 16,
+            cudaMemcpyDeviceToHost);
+        // float* output0_data =
+        //     reinterpret_cast<float*>(io_binding_info.device_buffer_);
+        LOG_ERROR << "output : " << output0_data[0];
+      }
+
+
       // Process the output tensors with the device memory address even if
       // zero-copy may be used, so that the memory copies perform asynchronously
       // and wait for model execution.

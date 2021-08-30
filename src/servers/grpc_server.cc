@@ -4376,23 +4376,23 @@ ModelInferHandler::InferResponseComplete(
   // std::string req_id = response->id();
   // int request_id = std::stoi(req_id);
   // std::string output_floats = "";
-  for (const auto& raw_output : response->raw_output_contents()) {
-    // size_t len = raw_output.size() / 4;
-    const float* buffer = reinterpret_cast<const float*>(&raw_output[0]);
-    // if ((request_id < 100) &&
-    //     (fabs(buffer[0] - output00[request_id]) > 0.00002f)) {
-    //   // if (fabs(buffer[0] - (-6.32422)) > 0.00002f) {
-    //   LOG_ERROR << "Incorrect output at " << request_id << ": " << buffer[0]
-    //             << ", expected " << output00[request_id];
-    // }
-    LOG_ERROR << "output : " << buffer[0];
-    break;
-    // for (size_t i = 0; i < len; ++i) {
-    // LOG_ERROR << buffer[i] << " ";
-    //   output_floats += std::to_string(buffer[i]) + " ";
-    // }
-    //   output_floats += "\n";
-  }
+  // for (const auto& raw_output : response->raw_output_contents()) {
+  //   // size_t len = raw_output.size() / 4;
+  //   const float* buffer = reinterpret_cast<const float*>(&raw_output[0]);
+  //   // if ((request_id < 100) &&
+  //   //     (fabs(buffer[0] - output00[request_id]) > 0.00002f)) {
+  //   //   // if (fabs(buffer[0] - (-6.32422)) > 0.00002f) {
+  //   //   LOG_ERROR << "Incorrect output at " << request_id << ": " << buffer[0]
+  //   //             << ", expected " << output00[request_id];
+  //   // }
+  //   LOG_ERROR << "output : " << buffer[0];
+  //   break;
+  //   // for (size_t i = 0; i < len; ++i) {
+  //   // LOG_ERROR << buffer[i] << " ";
+  //   //   output_floats += std::to_string(buffer[i]) + " ";
+  //   // }
+  //   //   output_floats += "\n";
+  // }
   // WriteFile("output.txt", output_floats);
 
   if (err != nullptr) {
