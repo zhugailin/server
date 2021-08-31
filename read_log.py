@@ -121,7 +121,7 @@ for line in f.readlines():
 f = open("server_async.log", "r")
 for line in f.readlines():
     try:
-        line_s = line.split("MemcpyLog : ")[1]
+        line_s = line.split("CudaLog : ")[1]
     except Exception:
         continue
     try:

@@ -54,17 +54,18 @@ cudaStream_t stream = nullptr;
 cudaError_t err = cudaStreamCreate(&stream);
 
 void CUDART_CB
-MemcpyLog(void* args)
+CudaLog(void* args)
 {
-  auto* copy_params = reinterpret_cast<CopyParams*>(args);
-  float output0_data[2];
-  cudaMemcpyAsync(
-      output0_data, copy_params->src_, copy_params->byte_size_,
-      cudaMemcpyDeviceToHost, stream);
-  cudaDeviceSynchronize();
+  // auto* copy_params = reinterpret_cast<CopyParams*>(args);
+  // float output0_data[2];
+  // cudaMemcpyAsync(
+  //     output0_data, copy_params->src_, copy_params->byte_size_,
+  //     cudaMemcpyDeviceToHost, stream);
+  // cudaDeviceSynchronize();
   // cudaStreamSynchronize(stream);
-  std::cerr << "output MemcpyLog : " << output0_data[0] << std::endl;
-  delete copy_params;
+  float* output0_data = reinterpret_cast<float*>(args);
+  std::cerr << "output CudaLog : " << output0_data[0] << std::endl;
+  // delete args;
 }
 #endif  // TRITON_ENABLE_GPU
 
@@ -284,9 +285,10 @@ BackendResponder::ProcessTensor(
   }
 #endif  // TRITON_ENABLE_GPU
   if (name == "output__0") {
-    auto params = new CopyParams(buffer, 8, stream_);
-    cudaLaunchHostFunc(
-        stream_, MemcpyLog, reinterpret_cast<void*>(params));
+    float* output0_data = new float[2];
+    // auto params = new CopyParams(buffer, 8, stream_);
+    cudaMemcpyAsync(output0_data, buffer, 8, cudaMemcpyDeviceToHost, stream_);
+    cudaLaunchHostFunc(stream_, CudaLog, reinterpret_cast<void*>(output0_data));
   }
 }
 
