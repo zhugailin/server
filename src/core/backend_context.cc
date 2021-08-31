@@ -56,16 +56,9 @@ cudaError_t err = cudaStreamCreate(&stream);
 void CUDART_CB
 CudaLog(void* args)
 {
-  // auto* copy_params = reinterpret_cast<CopyParams*>(args);
-  // float output0_data[2];
-  // cudaMemcpyAsync(
-  //     output0_data, copy_params->src_, copy_params->byte_size_,
-  //     cudaMemcpyDeviceToHost, stream);
-  // cudaDeviceSynchronize();
-  // cudaStreamSynchronize(stream);
   float* output0_data = reinterpret_cast<float*>(args);
   std::cerr << "output CudaLog : " << output0_data[0] << std::endl;
-  // delete args;
+  delete output0_data;
 }
 #endif  // TRITON_ENABLE_GPU
 
@@ -286,9 +279,8 @@ BackendResponder::ProcessTensor(
 #endif  // TRITON_ENABLE_GPU
   if (name == "output__0") {
     float* output0_data = new float[2];
-    // auto params = new CopyParams(buffer, 8, stream_);
     cudaMemcpyAsync(output0_data, buffer, 8, cudaMemcpyDeviceToHost, stream_);
-    cudaLaunchHostFunc(stream_, CudaLog, reinterpret_cast<void*>(output0_data));
+  //   cudaLaunchHostFunc(stream_, CudaLog, reinterpret_cast<void*>(output0_data));
   }
 }
 
@@ -392,8 +384,8 @@ BackendResponder::Finalize()
 
       // After GPU->pinned but before pinned->CPU
       if (response_output->Name() == "output__0") {
-        float* output0_data = reinterpret_cast<float*>(pinned_buffer);
-        LOG_ERROR << "output : " << output0_data[0];
+        // float* output0_data = reinterpret_cast<float*>(pinned_buffer);
+        // LOG_ERROR << "output : " << output0_data[0];
       }
 
       const void* response_buffer;
