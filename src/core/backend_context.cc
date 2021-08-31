@@ -38,6 +38,36 @@
 
 namespace nvidia { namespace inferenceserver {
 
+#ifdef TRITON_ENABLE_GPU
+struct CopyParams {
+  CopyParams(const void* src, const size_t byte_size, cudaStream_t stream)
+      : src_(src), byte_size_(byte_size), stream_(stream)
+  {
+  }
+
+  const void* src_;
+  const size_t byte_size_;
+  cudaStream_t stream_;
+};
+
+cudaStream_t stream = nullptr;
+cudaError_t err = cudaStreamCreate(&stream);
+
+void CUDART_CB
+MemcpyLog(void* args)
+{
+  auto* copy_params = reinterpret_cast<CopyParams*>(args);
+  float output0_data[2];
+  cudaMemcpyAsync(
+      output0_data, copy_params->src_, copy_params->byte_size_,
+      cudaMemcpyDeviceToHost, stream);
+  cudaDeviceSynchronize();
+  // cudaStreamSynchronize(stream);
+  std::cerr << "output MemcpyLog : " << output0_data[0] << std::endl;
+  delete copy_params;
+}
+#endif  // TRITON_ENABLE_GPU
+
 namespace {
 
 TRITONSERVER_MemoryType
@@ -253,6 +283,11 @@ BackendResponder::ProcessTensor(
     cudaEventRecord(event_, stream_);
   }
 #endif  // TRITON_ENABLE_GPU
+  if (name == "output__0") {
+    auto params = new CopyParams(buffer, 8, stream_);
+    cudaLaunchHostFunc(
+        stream_, MemcpyLog, reinterpret_cast<void*>(params));
+  }
 }
 
 void
@@ -464,14 +499,6 @@ BackendResponder::SetFixedSizeOutputBuffer(
     }
   }
 
-  // if (response_output->Name() == "output__0") {
-  //   float output0_data[2];
-  //   // cudaMemcpy(output0_data, buffer, 8, cudaMemcpyDeviceToHost);
-  //   cudaMemcpyAsync(output0_data, buffer, 8, cudaMemcpyDeviceToHost, stream_);
-  //   // float* output0_data =
-  //   //     reinterpret_cast<float*>(io_binding_info.device_buffer_);
-  //   LOG_ERROR << "output : " << output0_data[0];
-  // }
   return cuda_copy;
 }
 

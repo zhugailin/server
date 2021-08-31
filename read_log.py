@@ -66,12 +66,69 @@ for line in f.readlines():
 
 l2 = sorted(l2)
 l1 = sorted(l1)
-count = 0
-for i in range(len(l2)):
-    if l1[i] != l2[i]:
-        print(l1[i], l2[i])
-        count += 1
-    if count > 5:
-        break
+# count = 0
+# for i in range(len(l2)):
+#     if l1[i] != l2[i]:
+#         print(l1[i], l2[i])
+#         count += 1
+#     if count > 5:
+#         break
 
-print(count)
+# print(count)
+
+# 2 instances both cudaMemcpy GPU, and pinned memory output
+l1 = []
+l2 = []
+f = open("server_trt_right.log", "r")
+for line in f.readlines():
+    try:
+        line_s = line.split("put : ")[1]
+    except Exception:
+        continue
+    try:
+        l1.append(float(line_s))
+    except Exception as e:
+        l1.append(float(line_s.split("E0830")[0]))
+        print(e)
+
+f = open("server_trt_right.log", "r")
+for line in f.readlines():
+    try:
+        line_s = line.split("OutputBuffer : ")[1]
+    except Exception:
+        continue
+    try:
+        l2.append(float(line_s))
+    except Exception as e:
+        l2.append(float(line_s.split("E0830")[0]))
+        print(e)
+
+# 2 instances both cudaMemcpyAsync GPU, and pinned memory output
+l1 = []
+l2 = []
+f = open("server_async.log", "r")
+for line in f.readlines():
+    try:
+        line_s = line.split("put : ")[1]
+    except Exception:
+        continue
+    try:
+        l1.append(float(line_s))
+    except Exception as e:
+        l1.append(float(line_s.split("E0831")[0]))
+        print(e)
+
+f = open("server_async.log", "r")
+for line in f.readlines():
+    try:
+        line_s = line.split("MemcpyLog : ")[1]
+    except Exception:
+        continue
+    try:
+        l2.append(float(line_s))
+    except Exception as e:
+        l2.append(float(line_s.split("E0831")[0]))
+        print(e)
+
+
+
