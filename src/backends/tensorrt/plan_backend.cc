@@ -716,6 +716,8 @@ PlanBackend::CreateExecutionContext(
   for (int i = 0; i < context->num_expected_bindings_; ++i) {
     if (context->engine_->bindingIsInput(i)) {
       allowed_inputs.emplace(context->engine_->getBindingName(i));
+      LOG_INFO << "Binding Index: " << i
+               << " Name: " << context->engine_->getBindingName(i);
     } else {
       allowed_outputs.emplace(context->engine_->getBindingName(i));
     }
@@ -2643,6 +2645,21 @@ PlanBackend::Context::Run(
   auto prev_input_ready_event =
       eager_batching_ ? events_[prev_set].ready_for_input_ : nullptr;
   std::vector<int64_t> input_dims{(int64_t)payload_->total_batch_size_};
+  for (int i = 0; i < 3; i++) {
+    std::lock_guard<std::mutex> lock(ibmtx_);
+    if (inflight_bindings_.find(
+            buffer_bindings_[next_buffer_binding_set_][i]) !=
+        inflight_bindings_.end()) {
+      LOG_ERROR << "Selected binding is inflight";
+      status = Status(Status::Code::INTERNAL, "Selected binding is inflight");
+      FAIL_ALL_AND_RETURN_IF_ERROR(
+          payload_->requests_, payload_->responses_, metric_reporter_.get(),
+          status, "Selected binding is inflight");
+    }
+    inflight_bindings_.insert(buffer_bindings_[next_buffer_binding_set_][i]);
+  }
+  LOG_INFO << "Writing data to binding "
+           << buffer_bindings_[next_buffer_binding_set_][0];
   payload_->collector_.reset(new BackendInputCollector(
       payload_->requests_, &payload_->responses_, enable_pinned_input_,
       gather_kernel_buffer_threshold_, input_copy_stream_,
@@ -2970,6 +2987,14 @@ PlanBackend::Context::Run(
               "failed to specify the values for all input shape tensors"),
           "failed to run TRT inference");
     }
+    payload_->buffer_bindings_.push_back(
+        buffer_bindings_[next_buffer_binding_set_][0]);
+    payload_->buffer_bindings_.push_back(
+        buffer_bindings_[next_buffer_binding_set_][1]);
+    payload_->buffer_bindings_.push_back(
+        buffer_bindings_[next_buffer_binding_set_][2]);
+    LOG_INFO << "Executing binding index "
+             << buffer_bindings_[next_buffer_binding_set_][0];
     if (UseTensorRTv2API(engine_)) {
       if (!citr->second.context_->enqueueV2(
               buffer_bindings_[next_buffer_binding_set_].data(), stream_,
@@ -2997,7 +3022,7 @@ PlanBackend::Context::Run(
       }
     }
   }
-
+  // cudaEventRecord(events_[next_set_].ready_for_input_, stream_);
   cudaEventRecord(events_[next_set_].ready_for_output_, stream_);
 
 #ifdef TRITON_ENABLE_STATS
@@ -3226,6 +3251,7 @@ PlanBackend::Context::ProcessResponse(
     size_t context_idx,
     std::shared_ptr<triton::common::SyncQueue<size_t>> context_queue)
 {
+  cudaSetDevice(gpu_device_);
   while (true) {
     NVTX_RANGE(nvtx_, "ProcessResponse " + context_idx);
     auto payload = std::move(completion_queue_.Get());
@@ -3238,6 +3264,19 @@ PlanBackend::Context::ProcessResponse(
     // has consumed the inputs. Put the context back into the available queue
     // so that it can begin enqueuing new memcpys into the input buffers
     cudaEventSynchronize(event_set.ready_for_input_);
+    for (int i = 0; i < 3; i++) {
+      std::lock_guard<std::mutex> lock(ibmtx_);
+      if (inflight_bindings_.find(payload->buffer_bindings_[i]) ==
+          inflight_bindings_.end()) {
+        LOG_ERROR << "Binding being consumed is not in flight";
+      }
+      inflight_bindings_.erase(payload->buffer_bindings_[i]);
+    }
+    LOG_INFO << "Binding Data Consumed "
+             << buffer_bindings_[next_buffer_binding_set_][0];
+    cudaMemsetAsync(payload->buffer_bindings_[0], 0, 1536, input_copy_stream_);
+    cudaMemsetAsync(payload->buffer_bindings_[1], 0, 1536, input_copy_stream_);
+    cudaMemsetAsync(payload->buffer_bindings_[2], 0, 1536, input_copy_stream_);
     context_queue->Put(context_idx);
     NVTX_MARKER("plan_input_available");
 

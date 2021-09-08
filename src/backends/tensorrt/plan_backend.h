@@ -356,6 +356,8 @@ class PlanBackend : public InferenceBackend {
       // until the end of execution.
       std::unique_ptr<BackendInputCollector> collector_;
       std::unique_ptr<BackendResponder> responder_;
+
+      std::vector<void*> buffer_bindings_;
     };
 
     // Assume that the lifetime of composing completion data to extend till
@@ -427,6 +429,9 @@ class PlanBackend : public InferenceBackend {
     // The array size is equal to Context::total_bindings_
     // One of for each copy stream
     std::vector<std::vector<void*>> buffer_bindings_;
+
+    std::set<void*> inflight_bindings_;
+    std::mutex ibmtx_;
 
     // The request details of the ongoing model execution
     std::unique_ptr<Payload> payload_;
